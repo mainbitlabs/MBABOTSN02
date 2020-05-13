@@ -10,7 +10,7 @@
                                                  |___/ 
 
  */
-// const config = require('../config');
+const config = require('../config');
 const axios = require ('axios');
 
 // Dialogos
@@ -51,39 +51,35 @@ async infoConfirmStep(step) {
 
     const id = step.values.tt;
 
-const result = async()=> {
-    try {
-        return await axios.get(
-    
-            "https://mainbitprod.service-now.com/api/now/table/incident?sysparm_query=number%3D" + id +'&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=10',
-            {headers:{"Accept":"application/json","Content-Type":"application/json","Authorization": ("Basic " + Buffer.from("mjimenez@mainbit.com.mx:Mainbit.1").toString('base64'))}} ,
-        
-          )
-    } catch (error) {
+    const result = async function asyncFunc() {
+        try {
+            const response =  await axios.get(
+          
+              "https://mainbitprod.service-now.com/api/now/table/incident?sysparm_query=number%3D" + id +'&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=10',
+              {headers:{"Accept":"application/json","Content-Type":"application/json","Authorization": ("Basic " + Buffer.from(config.sn).toString('base64'))}} ,
+      
+            );
+            const data = await response;
+           
+            console.log(data.data.result[0].sys_domain);
+            const msg=(` **Ticket:** ${data.data.result[0].number}\n\n **Proyecto:** ${data.data.result[0].sys_domain}\n\n **Número de Serie**: ${data.data.result[0].u_ci} \n\n  **Categoría** ${data.data.result[0].category} \n\n **Subcategoría** ${data.data.result[0].subcategory} \n\n  **Subcategoría_L2** ${data.data.result[0].u_subcategory_l2} \n\n **Subcategoría_L3** ${data.data.result[0].u_subcategory_l3} \n\n**Subcategoría_L4** ${data.data.result[0].u_subcategory_l4} \n\n**Descripción ** ${data.data.result[0].short_description} \n\n**Detalle** ${data.data.result[0].description} \n\n`);
+            await step.context.sendActivity(msg);
+            return await step.prompt(CHOICE_PROMPT, {
+                prompt: '**¿Esta información es correcta?**',
+                choices: ChoiceFactory.toChoices(['Sí', 'No'])
+            });
+            // return data;
+      } catch (error) {
         console.log(error);
         
-    }
-}
-    //  console.log(response.data.result);
-    // console.log("Ticket: ",response.data.result[0].number);
-    //  console.log("Estado: ",response.data.result[0].state);
-    //  console.log("No de serie: ",response.data.result[0].u_ci);
-    //  console.log("Proyecto: ",response.data.result[0].sys_domain);
-    //  console.log("Categoria: ",response.data.result[0].category);
-    //  console.log("Subcategoria: ",response.data.result[0].subcategory);
-    //  console.log("Subcategoria 2: ",response.data.result[0].u_subcategory_l2);
-    //  console.log("Subcategoria 3: ",response.data.result[0].u_subcategory_l3);
-    //  console.log("Subcategoria 4: ",response.data.result[0].u_subcategory_l4);
-    //  console.log("Abierto en: ",response.data.result[0].opened_at);
-    //  console.log("Grupo Asignado: ",response.data.result[0].assignment_group);
-    //  console.log("Descripción corta: ",response.data.result[0].short_description);
-    //  console.log("Descripción: ",response.data.result[0].description);
-if (result){
-    console.log(result);
+      }
+    };
+    return await result();
     
-    const msg=(` **Ticket:** ${response.data.result[0].number}\n\n **Proyecto:** ${response.data.result[0].sys_domain}\n\n **Número de Serie**: ${response.data.result[0].u_ci} \n\n  **Categoría** ${response.data.result[0].category} \n\n **Subcategoría** ${response.data.result[0].subcategory} \n\n  `);
-    await step.context.sendActivity(msg);
-}
+
+   
+   
+
   
 }
 
@@ -93,13 +89,10 @@ async dispatcher(step) {
     switch (selection) {
         
         case 'Sí':
-            return await step.prompt(CHOICE_PROMPT,{
-                prompt:'¿Tu solicitud es un requerimiento, una falla o servicio general?',
-                choices: ChoiceFactory.toChoices(['Falla', 'Servicio'])
-            });
+            return await step.endDialog();
 
         case 'No':
-           return await step.beginDialog(MAILER_DIALOG);             
+            return await step.endDialog();          
           
     }
 }
