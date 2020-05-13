@@ -16,7 +16,9 @@
         "url": "https://github.com"
     },
     "dependencies": {
+        "axios": "^0.19.2",
         "botbuilder": "~4.8.0",
+        "botbuilder-dialogs": "^4.8.0",
         "dotenv": "^8.2.0",
         "restify": "~8.4.0"
     },

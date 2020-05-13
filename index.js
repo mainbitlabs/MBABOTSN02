@@ -7,22 +7,16 @@ const restify = require('restify');
 
 // Import required bot services.
 // See https://aka.ms/bot-services to learn more about the different parts of a bot.
-const { BotFrameworkAdapter } = require('botbuilder');
+const { BotFrameworkAdapter, MemoryStorage, ConversationState, UserState } = require('botbuilder');
 
 // This bot's main dialog.
-const { EchoBot } = require('./bot');
+// const { EchoBot } = require('./bot');
+const { DialogBot } = require('./bots/dialogBot');
+const { FirstDialog } = require('./dialogs/firstDialog');
 
 // Import required bot configuration.
 const ENV_FILE = path.join(__dirname, '.env');
 dotenv.config({ path: ENV_FILE });
-
-// Create HTTP server
-const server = restify.createServer();
-server.listen(process.env.port || process.env.PORT || 3978, () => {
-    console.log(`\n${ server.name } listening to ${ server.url }`);
-    console.log('\nGet Bot Framework Emulator: https://aka.ms/botframework-emulator');
-    console.log('\nTo talk to your bot, open the emulator select "Open Bot"');
-});
 
 // Create adapter.
 // See https://aka.ms/about-bot-adapter to learn more about how bots work.
@@ -31,6 +25,15 @@ const adapter = new BotFrameworkAdapter({
     appPassword: process.env.MicrosoftAppPassword,
     channelService: process.env.ChannelService,
     openIdMetadata: process.env.BotOpenIdMetadata
+});
+
+
+// Create HTTP server
+const server = restify.createServer();
+server.listen(process.env.port || process.env.PORT || 3978, () => {
+    console.log(`\n${ server.name } listening to ${ server.url }`);
+    console.log('\nGet Bot Framework Emulator: https://aka.ms/botframework-emulator');
+    console.log('\nTo talk to your bot, open the emulator select "Open Bot"');
 });
 
 // Catch-all for errors.
@@ -56,16 +59,21 @@ const onTurnErrorHandler = async (context, error) => {
 // Set the onTurnError for the singleton BotFrameworkAdapter.
 adapter.onTurnError = onTurnErrorHandler;
 
-// Create the main dialog.
-const myBot = new EchoBot();
 
-// Listen for incoming requests.
-server.post('/api/messages', (req, res) => {
-    adapter.processActivity(req, res, async (context) => {
-        // Route to main dialog.
-        await myBot.run(context);
-    });
-});
+// For local development, in-memory storage is used.
+// CAUTION: The Memory Storage used here is for local bot debugging only. When the bot
+// is restarted, anything stored in memory will be gone.
+let conversationState, userState;
+const memoryStorage = new MemoryStorage();
+conversationState = new ConversationState(memoryStorage);
+userState = new UserState(memoryStorage);
+
+// Pass in a logger to the bot. For this sample, the logger is the console, but alternatives such as Application Insights and Event Hub exist for storing the logs of the bot.
+const logger = console;
+
+// Create the main dialog.
+const dialog = new FirstDialog(logger);
+const bot = new DialogBot(conversationState, userState, dialog, logger);
 
 // Listen for Upgrade requests for Streaming.
 server.on('upgrade', (req, socket, head) => {
@@ -81,5 +89,13 @@ server.on('upgrade', (req, socket, head) => {
         // After connecting via WebSocket, run this logic for every request sent over
         // the WebSocket connection.
         await myBot.run(context);
+    });
+});
+
+// Listen for incoming requests.
+server.post('/api/messages', (req, res) => {
+    adapter.processActivity(req, res, async (context) => {
+        // Route to main dialog.
+        await bot.run(context);
     });
 });
