@@ -80,9 +80,9 @@ const result = async()=> {
     //  console.log("Descripción: ",response.data.result[0].description);
 if (result){
     console.log(result);
-    
+    /*
     const msg=(` **Ticket:** ${response.data.result[0].number}\n\n **Proyecto:** ${response.data.result[0].sys_domain}\n\n **Número de Serie**: ${response.data.result[0].u_ci} \n\n  **Categoría** ${response.data.result[0].category} \n\n **Subcategoría** ${response.data.result[0].subcategory} \n\n  `);
-    await step.context.sendActivity(msg);
+    await step.context.sendActivity(msg);*/
 }
   
 }
