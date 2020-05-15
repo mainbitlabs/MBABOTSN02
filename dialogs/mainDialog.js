@@ -127,6 +127,10 @@ const trim = id.trim();
                                                 "value": data.data.result[0].sys_domain  + " "
                                             },
                                             {
+                                                "title": "Estado:",
+                                                "value": data.data.result[0].state + " "
+                                            },
+                                            {
                                                 "title": "Número de Serie:",
                                                 "value": data.data.result[0].u_ci + " "
                                             },
@@ -258,25 +262,19 @@ const trim = id.trim();
                                                 "value": data.data.result[0].u_ci  + " "
                                             },
                                             {
+                                                "title": "Estado:",
+                                                "value": data.data.result[0].state + " "
+                                            },
+                                        
+                                            {
                                                 "title": "Categoría:",
-                                                "value": data.data.result[0].category + " "
+                                                "value": data.data.result[0].u_category  + " "
                                             },
                                             {
                                                 "title": "Subcategoría:",
-                                                "value": data.data.result[0].subcategory  + " "
+                                                "value": data.data.result[0].u_subcategory  + " "
                                             },
-                                            {
-                                                "title": "Subcategoría_l2:",
-                                                "value": data.data.result[0].u_subcategory_l2 + " "
-                                            },
-                                            {
-                                                "title": "Subcategoría_l3:",
-                                                "value": data.data.result[0].u_subcategory_l3  + " "
-                                            },
-                                            {
-                                                "title": "Subcategoría_l4:",
-                                                "value": data.data.result[0].u_subcategory_l4  + " "
-                                            },
+                                            
                                             {
                                                 "title": "Descripción corta:",
                                                 "value": data.data.result[0].short_description  + " "
