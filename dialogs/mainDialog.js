@@ -64,7 +64,7 @@ const trim = id.trim();
                 );
                 const data = await response;
                
-                console.log(data.data.result[0].sys_domain);
+                console.log(data.data.result[0].number);
                 // const msg=(` **Ticket:** ${data.data.result[0].number}\n\n **Proyecto:** ${data.data.result[0].sys_domain}\n\n **Número de Serie**: ${data.data.result[0].u_ci} \n\n  **Categoría** ${data.data.result[0].category} \n\n **Subcategoría** ${data.data.result[0].subcategory} \n\n  **Subcategoría_L2** ${data.data.result[0].u_subcategory_l2} \n\n **Subcategoría_L3** ${data.data.result[0].u_subcategory_l3} \n\n**Subcategoría_L4** ${data.data.result[0].u_subcategory_l4} \n\n**Descripción ** ${data.data.result[0].short_description} \n\n**Detalle** ${data.data.result[0].description} \n\n`);
                 // await step.context.sendActivity(msg);
                 await step.context.sendActivity({
@@ -193,9 +193,108 @@ const trim = id.trim();
                 );
                 const data = await response;
                
-                console.log(data.data.result[0].sys_domain);
-                const msg=(` **Ticket:** ${data.data.result[0].number}\n\n **Proyecto:** ${data.data.result[0].sys_domain}\n\n **Número de Serie**: ${data.data.result[0].u_ci} \n\n  **Categoría** ${data.data.result[0].category} \n\n **Subcategoría** ${data.data.result[0].subcategory} \n\n  **Subcategoría_L2** ${data.data.result[0].u_subcategory_l2} \n\n **Subcategoría_L3** ${data.data.result[0].u_subcategory_l3} \n\n**Subcategoría_L4** ${data.data.result[0].u_subcategory_l4} \n\n**Descripción ** ${data.data.result[0].short_description} \n\n**Detalle** ${data.data.result[0].description} \n\n`);
-                await step.context.sendActivity(msg);
+                console.log(data.data.result[0].number);
+                await step.context.sendActivity({
+                    attachments: [
+                              {
+                                "contentType": "application/vnd.microsoft.card.adaptive",
+                                "content": {
+                                  "type": "AdaptiveCard",
+                                  "version": "1.0",
+                                  "body": [
+                                    
+                                    {
+                                        "type": "ColumnSet",
+                                        "columns": [
+                                            {
+                                                "type": "Column",
+                                                "width": "stretch",
+                                                "items": [
+                                                    {
+                                                        "type": "Image",
+                                                        "altText": "",
+                                                        "url": "https://raw.githubusercontent.com/esanchezlMBT/images/master/ServiceNow-logo.png"
+                                                    }
+                                                ],
+                                                "separator": true
+                                            },
+                                            {
+                                                "type": "Column",
+                                                "width": "stretch",
+                                                "items": [
+                                                    {
+                                                        "type": "Image",
+                                                        "altText": "",
+                                                        "url": "https://raw.githubusercontent.com/esanchezlMBT/images/master/Mainbit-logo.png",
+                                                        "spacing": "Medium",
+                                                        "horizontalAlignment": "Center",
+                                                        "separator": true
+                                                    }
+                                                ],
+                                                "separator": true
+                                            }
+                                           
+                                            
+                                            
+                                        ]
+                                    },
+                                    {
+                                        "type": "TextBlock",
+                                        "text": "Ticket: "+ data.data.result[0].number,
+                                        "weight": "Bolder",
+                                        "size": "Medium",
+                                        "color": "Attention",
+                                        "horizontalAlignment": "Right"
+                                    },
+                                    {
+                                        "type": "FactSet",
+                                        "facts": [
+                                            {
+                                                "title": "Proyecto:",
+                                                "value": data.data.result[0].sys_domain
+                                            },
+                                            {
+                                                "title": "Número de Serie:",
+                                                "value": data.data.result[0].u_ci
+                                            },
+                                            {
+                                                "title": "Categoría:",
+                                                "value": data.data.result[0].category
+                                            },
+                                            {
+                                                "title": "Subcategoría:",
+                                                "value": data.data.result[0].subcategory
+                                            },
+                                            {
+                                                "title": "Subcategoría_l2:",
+                                                "value": data.data.result[0].u_subcategory_l2
+                                            },
+                                            {
+                                                "title": "Subcategoría_l3:",
+                                                "value": data.data.result[0].u_subcategory_l3
+                                            },
+                                            {
+                                                "title": "Subcategoría_l4:",
+                                                "value": data.data.result[0].u_subcategory_l4
+                                            },
+                                            {
+                                                "title": "Descripción corta:",
+                                                "value": data.data.result[0].short_description
+                                            },
+                                            {
+                                                "title": "Detalles:",
+                                                "value": data.data.result[0].description
+                                            }
+                                        ],
+                                        "separator": true,
+                                        "spacing": "Medium"
+                                    }
+                                  ]
+                                }
+                              }
+                            ]
+            
+                });
                 return await step.prompt(CHOICE_PROMPT, {
                     prompt: '**¿Esta información es correcta?**',
                     choices: ChoiceFactory.toChoices(['Sí', 'No'])
