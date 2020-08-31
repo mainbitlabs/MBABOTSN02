@@ -20,6 +20,7 @@
         "botbuilder": "~4.8.0",
         "botbuilder-dialogs": "^4.8.0",
         "dotenv": "^8.2.0",
+        "moment-timezone": "^0.5.31",
         "restify": "~8.4.0"
     },
     "devDependencies": {

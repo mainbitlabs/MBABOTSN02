@@ -17,6 +17,7 @@ const axios = require ('axios');
 const { CancelAndHelpDialog } = require('./cancelAndHelpDialog');
 const {CardFactory} = require('botbuilder');
 const { ChoiceFactory, ChoicePrompt, TextPrompt, WaterfallDialog} = require('botbuilder-dialogs');
+const moment = require('moment-timezone');
 
 const CHOICE_PROMPT = "CHOICE_PROMPT";
 const TEXT_PROMPT = "TEXT_PROMPT";
@@ -34,6 +35,7 @@ class MainDialog extends CancelAndHelpDialog {
             this.infoConfirmStep.bind(this),
             this.dispatcher.bind(this),
             this.choiceDialog.bind(this),
+            this.actualizarDialog.bind(this),
             this.finalDialog.bind(this)
         ]));
         this.initialDialogId = WATERFALL_DIALOG;
@@ -41,7 +43,7 @@ class MainDialog extends CancelAndHelpDialog {
 
 async serieStep(step){
     console.log('[mainDialog]:serieStep');
-    
+
     await step.context.sendActivity('Recuerda que este bot tiene un tiempo limite de 10 minutos.');
 
     return await step.prompt(TEXT_PROMPT, `Por favor, **escribe el Número de Ticket de ServiceNow que deseas consultar.**`);
@@ -49,22 +51,30 @@ async serieStep(step){
 
 async infoConfirmStep(step) {
     console.log('[mainDialog]:infoConfirmStep <<inicia>>');
-    step.values.tt = step.result;
+    const details = step.options;
+    console.log(details);
+    details.result = step.result;
 
-    const id = step.values.tt.toUpperCase();
-const trim = id.trim();
+    const id = details.result.toUpperCase();
+    const trim = id.replace(/ /g,'');
+    details.tt = trim;
+console.log(trim);
     if (trim.startsWith("INC")) {
         const result = async function asyncFunc() {
             try {
                 const response =  await axios.get(
               
-                  "https://mainbitprod.service-now.com/api/now/table/incident?sysparm_query=number%3D" + trim +'&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=10',
+                  config.url + "/table/incident?sysparm_query=number%3D" + trim +'&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=10',
                   {headers:{"Accept":"application/json","Content-Type":"application/json","Authorization": ("Basic " + Buffer.from(config.sn).toString('base64'))}} ,
           
                 );
                 const data = await response;
                
-                console.log(data.data.result[0].number);
+                // console.log(data.data.result[0]);
+                details.sysid = data.data.result[0].sys_id; 
+                details.description = data.data.result[0].description; 
+                console.log(details.sysid);
+                console.log(details.description);
                 // const msg=(` **Ticket:** ${data.data.result[0].number}\n\n **Proyecto:** ${data.data.result[0].sys_domain}\n\n **Número de Serie**: ${data.data.result[0].u_ci} \n\n  **Categoría** ${data.data.result[0].category} \n\n **Subcategoría** ${data.data.result[0].subcategory} \n\n  **Subcategoría_L2** ${data.data.result[0].u_subcategory_l2} \n\n **Subcategoría_L3** ${data.data.result[0].u_subcategory_l3} \n\n**Subcategoría_L4** ${data.data.result[0].u_subcategory_l4} \n\n**Descripción ** ${data.data.result[0].short_description} \n\n**Detalle** ${data.data.result[0].description} \n\n`);
                 // await step.context.sendActivity(msg);
                 await step.context.sendActivity({
@@ -160,7 +170,7 @@ const trim = id.trim();
                                             },
                                             {
                                                 "title": "Detalles:",
-                                                "value": data.data.result[0].description + " "
+                                                "value": details.description + " "
                                             }
                                         ],
                                         "separator": true,
@@ -191,13 +201,16 @@ const trim = id.trim();
             try {
                 const response =  await axios.get(
               
-                  "https://mainbitprod.service-now.com/api/now/table/sc_req_item?sysparm_query=number%3D" + trim +'&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=10',
+                  config.url + "/table/sc_req_item?sysparm_query=number%3D" + trim +'&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=10',
                   {headers:{"Accept":"application/json","Content-Type":"application/json","Authorization": ("Basic " + Buffer.from(config.sn).toString('base64'))}} ,
           
                 );
                 const data = await response;
                
-                console.log(data.data.result[0].number);
+                details.sysid = data.data.result[0].sys_id; 
+                details.description = data.data.result[0].description; 
+                console.log(details.sysid);
+                console.log(details.description);
                 await step.context.sendActivity({
                     attachments: [
                               {
@@ -281,7 +294,7 @@ const trim = id.trim();
                                             },
                                             {
                                                 "title": "Detalles:",
-                                                "value": data.data.result[0].description  + " "
+                                                "value": details.description  + " "
                                             }
                                         ],
                                         "separator": true,
@@ -325,7 +338,10 @@ async dispatcher(step) {
     switch (selection) {
         
         case 'Sí':
-            return await step.endDialog();
+            return await step.prompt(CHOICE_PROMPT, {
+                prompt: '**¿Que deseas realizar?**',
+                choices: ChoiceFactory.toChoices(['Actualizar Descripción', 'Cancelar'])
+            });
 
         case 'No':
             return await step.endDialog();          
@@ -335,33 +351,54 @@ async dispatcher(step) {
 
     async choiceDialog(step) {
         console.log('[mainDialog]:choiceDialog <<inicia>>');
-        // console.log('result ?',step.result);
+        const answer = step.result.value;
+        switch (answer) {
+            case "Actualizar Descripción":
+                
+                return await step.prompt(TEXT_PROMPT, `Por favor, **escribe la descripción.**`);
+            
+            case "Cancelar":
 
-        if (step.result === undefined) {
-            return await step.endDialog();
-        } else {
-            const answer = step.result.value;
-            config.solicitud = {};
-            const sol = config.solicitud;
-            if (!step.result) {
-            }
-            if (!answer) {
-                // exhausted attempts and no selection, start over
-                await step.context.sendActivity('Not a valid option. We\'ll restart the dialog ' +
-                    'so you can try again!');
-                return await step.endDialog();
-            }
-            if (answer ==='Falla') {
-                sol.level1 = answer;
-                return await step.beginDialog(FALLA_DIALOG); 
-            } 
-            if (answer ==='Servicio') {
-                sol.level1 = answer;
-                return await step.beginDialog(SERVICIO_DIALOG); 
-            } 
+                return await step.context.sendActivity('Cancelando...');
+        }
+       
     }
-        console.log('[mainDialog]:choiceDialog<<termina>>');
+
+    async actualizarDialog(step){
+        console.log('[mainDialog]:actualizarDialog <<inicia>>');
+        const descripcion = step.result;
+        const details = step.options;
+
+        moment.locale('es');
+        const cdmx = moment().tz("America/Mexico_City");
+        console.log(cdmx.format('LLL'));
+        console.log(details.sysid);
+        console.log(details);
+        console.log(details.description);
+        
+        const result = async function asyncFunc() {
+            try {
+                const response =  await axios.put(
+              
+                    config.url + "/table/incident/" + details.sysid,
+                    {"description": cdmx.format('LLL') + " " + descripcion + "\n" + details.description},
+                    {headers:{"Accept":"application/json","Content-Type":"application/json","Authorization": ("Basic " + Buffer.from(config.sn).toString('base64'))}}
+            
+                  );
+                  await response;
+                  console.log('await response');
+                  await step.prompt(TEXT_PROMPT, `La información ha sido actualizada correctamente.`);
+                  return await step.endDialog();
+                  
+            } catch (error) {
+                console.log(error);
+            await step.context.sendActivity('La operación no se pudo realizar en estos momentos, intentalo más tarde.');
+            return await step.endDialog();
+            }
+        };
+        await result();
         return await step.endDialog();
+
     }
 
     async finalDialog(step){
