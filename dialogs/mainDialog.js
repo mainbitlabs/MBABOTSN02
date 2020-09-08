@@ -13,6 +13,7 @@
 const config = require('../config');
 const axios = require ('axios');
 
+
 // Dialogos
 const { CancelAndHelpDialog } = require('./cancelAndHelpDialog');
 const {CardFactory} = require('botbuilder');
@@ -31,6 +32,8 @@ class MainDialog extends CancelAndHelpDialog {
         this.addDialog(new TextPrompt(TEXT_PROMPT));
         this.addDialog(new ChoicePrompt(CHOICE_PROMPT));
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
+            this.tipoStep.bind(this),
+            this.proyectoStep.bind(this),
             this.serieStep.bind(this),
             this.infoConfirmStep.bind(this),
             this.dispatcher.bind(this),
@@ -41,40 +44,94 @@ class MainDialog extends CancelAndHelpDialog {
         this.initialDialogId = WATERFALL_DIALOG;
     }
 
-async serieStep(step){
-    console.log('[mainDialog]:serieStep');
-
+async tipoStep(step){
+    console.log('[mainDialog]:TipoStep');
     await step.context.sendActivity('Recuerda que este bot tiene un tiempo limite de 10 minutos.');
+    return await step.prompt(TEXT_PROMPT, `Por favor, **escribe el proyecto que deseas consultar.**`);
+}
+
+async proyectoStep(step){
+    console.log('[mainDialog]:ProyectoStep');
+    const proyecto = step.result.toUpperCase();
+    const trim = proyecto.replace(/ /g,'');
+    const details = step.options;
+        details.proyecto = trim;
+
+switch (details.proyecto) {
+    case "SAT":
+    case "INE":
+        
+        return await step.prompt(CHOICE_PROMPT, {
+            prompt: 'Por favor, **indica el tipo de Ticket de ServiceNow que deseas consultar.**',
+            choices: ChoiceFactory.toChoices(['Incidente', 'Requerimiento'])
+        });
+    
+    default:
+        console.log(details.proyecto);
+        await step.context.sendActivity(`El proyecto **${step.result}** no está registrado en la base de datos.`);
+        return await step.endDialog();   
+    }
+}
+async serieStep(step){
+    console.log('[mainDialog]:SerieStep');
+
+    const tipo = step.result.value;
+    const details = step.options;
+        details.tipo = tipo;
 
     return await step.prompt(TEXT_PROMPT, `Por favor, **escribe el Número de Ticket de ServiceNow que deseas consultar.**`);
 }
 
 async infoConfirmStep(step) {
     console.log('[mainDialog]:infoConfirmStep <<inicia>>');
+    await step.context.sendActivities([
+        { type: 'typing' },
+        { type: 'delay', value: 2000 },
+        { type: 'message', text:'Por favor espera un momento, estamos trabajando en ello...'}
+]);
     const details = step.options;
-    console.log(details);
     details.result = step.result;
+    console.log(details);
 
+    let qfoliosn = "";
+    
+    switch (details.proyecto) {
+        
+        case "SAT":
+        qfoliosn = config.foliosn.SAT;
+            break;
+        
+        case "INE":
+        qfoliosn = config.foliosn.INE;
+            break
+        
+        default:
+            break;
+    }
+console.log(qfoliosn);
     const id = details.result.toUpperCase();
     const trim = id.replace(/ /g,'');
     details.tt = trim;
 console.log(trim);
-    if (trim.startsWith("INC")) {
+    if (details.tipo === "Incidente") {
+        details.tabla = "incident";
         const result = async function asyncFunc() {
             try {
+                const url = config.url + "/table/" + details.tabla + "?sysparm_query=" + qfoliosn + "STARTSWITH" + trim +'&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=1';
+                console.log("URL INC : ",url);
                 const response =  await axios.get(
-              
-                  config.url + "/table/incident?sysparm_query=number%3D" + trim +'&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=10',
+                url,
                   {headers:{"Accept":"application/json","Content-Type":"application/json","Authorization": ("Basic " + Buffer.from(config.sn).toString('base64'))}} ,
           
                 );
                 const data = await response;
                
-                // console.log(data.data.result[0]);
+                console.log("Requerimiento ", data.data.result[0]);
                 details.sysid = data.data.result[0].sys_id; 
                 details.description = data.data.result[0].description; 
                 console.log(details.sysid);
                 console.log(details.description);
+                
                 // const msg=(` **Ticket:** ${data.data.result[0].number}\n\n **Proyecto:** ${data.data.result[0].sys_domain}\n\n **Número de Serie**: ${data.data.result[0].u_ci} \n\n  **Categoría** ${data.data.result[0].category} \n\n **Subcategoría** ${data.data.result[0].subcategory} \n\n  **Subcategoría_L2** ${data.data.result[0].u_subcategory_l2} \n\n **Subcategoría_L3** ${data.data.result[0].u_subcategory_l3} \n\n**Subcategoría_L4** ${data.data.result[0].u_subcategory_l4} \n\n**Descripción ** ${data.data.result[0].short_description} \n\n**Detalle** ${data.data.result[0].description} \n\n`);
                 // await step.context.sendActivity(msg);
                 await step.context.sendActivity({
@@ -123,7 +180,7 @@ console.log(trim);
                                     },
                                     {
                                         "type": "TextBlock",
-                                        "text": "Ticket: "+ data.data.result[0].number,
+                                        "text": "Ticket: "+ details.tt,
                                         "weight": "Bolder",
                                         "size": "Medium",
                                         "color": "Attention",
@@ -196,12 +253,15 @@ console.log(trim);
         return await result();
  
     } 
-    if(trim.startsWith("RITM")) {
+
+    if(details.tipo === "Requerimiento") {
+        details.tabla = "sc_req_item";
         const result = async function asyncFunc() {
             try {
+                const url = config.url + "/table/"+ details.tabla +"?sysparm_query=" + qfoliosn + "STARTSWITH" + trim +'&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=1' ;
+                console.log( "URL req : ",url);
                 const response =  await axios.get(
-              
-                  config.url + "/table/sc_req_item?sysparm_query=number%3D" + trim +'&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=10',
+                    url,
                   {headers:{"Accept":"application/json","Content-Type":"application/json","Authorization": ("Basic " + Buffer.from(config.sn).toString('base64'))}} ,
           
                 );
@@ -257,7 +317,7 @@ console.log(trim);
                                     },
                                     {
                                         "type": "TextBlock",
-                                        "text": "Ticket: "+ data.data.result[0].number,
+                                        "text": "Ticket: "+ details.tt,
                                         "weight": "Bolder",
                                         "size": "Medium",
                                         "color": "Attention",
@@ -322,14 +382,6 @@ console.log(trim);
         await step.context.sendActivity('El número de ticket no se encuentra en la base de datos de ServiceNow.');
         return await step.endDialog();
     }
-    
-
-    
-
-   
-   
-
-  
 }
 
 async dispatcher(step) {
@@ -378,9 +430,10 @@ async dispatcher(step) {
         
         const result = async function asyncFunc() {
             try {
+                const url = config.url + "/table/" + details.tabla + "/" + details.sysid ;
+                console.log("URL_Put : ", url);
                 const response =  await axios.put(
-              
-                    config.url + "/table/incident/" + details.sysid,
+                    url,
                     {"description": cdmx.format('LLL') + " " + descripcion + "\n" + details.description},
                     {headers:{"Accept":"application/json","Content-Type":"application/json","Authorization": ("Basic " + Buffer.from(config.sn).toString('base64'))}}
             

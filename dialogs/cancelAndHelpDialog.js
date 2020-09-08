@@ -52,7 +52,7 @@ class CancelAndHelpDialog extends ComponentDialog {
             case 'cancel':
             case 'cancelar':
             case 'salir':
-                
+                console.log('cancelAndHelpDialog : [interrupt]');
                 await innerDc.context.sendActivity('Cancelando...');
                 // config = {};
                 // console.log(config);
