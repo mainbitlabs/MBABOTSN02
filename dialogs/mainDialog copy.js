@@ -12,13 +12,14 @@
  */
 const config = require('../config');
 const axios = require ('axios');
-
+const azurest = require('azure-storage');
+const tableSvc = azurest.createTableService(config.storageA, config.accessK);
+const azureTS = require('azure-table-storage-async');
 
 // Dialogos
 const { CancelAndHelpDialog } = require('./cancelAndHelpDialog');
 const {CardFactory} = require('botbuilder');
 const { ChoiceFactory, ChoicePrompt, TextPrompt, WaterfallDialog} = require('botbuilder-dialogs');
-const { ActualizarSNDialog, ACTUALIZARSN_DIALOG } = require('./actualizarSN');
 const moment = require('moment-timezone');
 
 const CHOICE_PROMPT = "CHOICE_PROMPT";
@@ -30,109 +31,53 @@ class MainDialog extends CancelAndHelpDialog {
         super(id || 'mainDialog');
 
         // this.addDialog(new FallaDialog());
-        this.addDialog(new ActualizarSNDialog());
         this.addDialog(new TextPrompt(TEXT_PROMPT));
         this.addDialog(new ChoicePrompt(CHOICE_PROMPT));
         this.addDialog(new WaterfallDialog(WATERFALL_DIALOG, [
-            this.tipoStep.bind(this),
-            this.proyectoStep.bind(this),
             this.serieStep.bind(this),
             this.infoConfirmStep.bind(this),
             this.dispatcher.bind(this),
             this.choiceDialog.bind(this),
+            this.actualizarDialog.bind(this),
             this.finalDialog.bind(this)
         ]));
         this.initialDialogId = WATERFALL_DIALOG;
     }
 
-async tipoStep(step){
-    console.log('[mainDialog]:TipoStep');
-    await step.context.sendActivity('Recuerda que este bot tiene un tiempo limite de 10 minutos.');
-    return await step.prompt(TEXT_PROMPT, `Por favor, **escribe el proyecto que deseas consultar.**`);
-}
-
-async proyectoStep(step){
-    console.log('[mainDialog]:ProyectoStep');
-    const proyecto = step.result.toUpperCase();
-    const trim = proyecto.replace(/ /g,'');
-    const details = step.options;
-        details.proyecto = trim;
-
-switch (details.proyecto) {
-    case "SAT":
-    case "INE":
-        
-        return await step.prompt(CHOICE_PROMPT, {
-            prompt: 'Por favor, **indica el tipo de Ticket de ServiceNow que deseas consultar.**',
-            choices: ChoiceFactory.toChoices(['Incidente', 'Requerimiento'])
-        });
-    
-    default:
-        console.log(details.proyecto);
-        await step.context.sendActivity(`El proyecto **${step.result}** no está registrado en la base de datos.`);
-        return await step.endDialog();   
-    }
-}
 async serieStep(step){
-    console.log('[mainDialog]:SerieStep');
+    console.log('[mainDialog]:serieStep');
 
-    const tipo = step.result.value;
-    const details = step.options;
-        details.tipo = tipo;
+    await step.context.sendActivity('Recuerda que este bot tiene un tiempo limite de 10 minutos.');
 
     return await step.prompt(TEXT_PROMPT, `Por favor, **escribe el Número de Ticket de ServiceNow que deseas consultar.**`);
 }
 
 async infoConfirmStep(step) {
     console.log('[mainDialog]:infoConfirmStep <<inicia>>');
-    await step.context.sendActivities([
-        { type: 'typing' },
-        { type: 'delay', value: 2000 },
-        { type: 'message', text:'Por favor espera un momento, estamos trabajando en ello...'}
-]);
     const details = step.options;
-    details.result = step.result;
     console.log(details);
+    details.result = step.result;
 
-    let qfoliosn = "";
-    
-    switch (details.proyecto) {
-        
-        case "SAT":
-        qfoliosn = config.foliosn.SAT;
-            break;
-        
-        case "INE":
-        qfoliosn = config.foliosn.INE;
-            break
-        
-        default:
-            break;
-    }
-console.log(qfoliosn);
     const id = details.result.toUpperCase();
     const trim = id.replace(/ /g,'');
     details.tt = trim;
 console.log(trim);
-    if (details.tipo === "Incidente") {
-        details.tabla = "incident";
+    if (trim.startsWith("INC")) {
         const result = async function asyncFunc() {
             try {
-                const url = config.url + "/table/" + details.tabla + "?sysparm_query=" + qfoliosn + "STARTSWITH" + trim +'&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=1';
-                console.log("URL INC : ",url);
                 const response =  await axios.get(
-                url,
+              
+                  config.url + "/table/incident?sysparm_query=number%3D" + trim +'&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=10',
                   {headers:{"Accept":"application/json","Content-Type":"application/json","Authorization": ("Basic " + Buffer.from(config.sn).toString('base64'))}} ,
           
                 );
                 const data = await response;
                
-                console.log("Requerimiento ", data.data.result[0]);
+                // console.log(data.data.result[0]);
                 details.sysid = data.data.result[0].sys_id; 
                 details.description = data.data.result[0].description; 
                 console.log(details.sysid);
                 console.log(details.description);
-                
                 // const msg=(` **Ticket:** ${data.data.result[0].number}\n\n **Proyecto:** ${data.data.result[0].sys_domain}\n\n **Número de Serie**: ${data.data.result[0].u_ci} \n\n  **Categoría** ${data.data.result[0].category} \n\n **Subcategoría** ${data.data.result[0].subcategory} \n\n  **Subcategoría_L2** ${data.data.result[0].u_subcategory_l2} \n\n **Subcategoría_L3** ${data.data.result[0].u_subcategory_l3} \n\n**Subcategoría_L4** ${data.data.result[0].u_subcategory_l4} \n\n**Descripción ** ${data.data.result[0].short_description} \n\n**Detalle** ${data.data.result[0].description} \n\n`);
                 // await step.context.sendActivity(msg);
                 await step.context.sendActivity({
@@ -181,7 +126,7 @@ console.log(trim);
                                     },
                                     {
                                         "type": "TextBlock",
-                                        "text": "Ticket: "+ details.tt,
+                                        "text": "Ticket: "+ data.data.result[0].number,
                                         "weight": "Bolder",
                                         "size": "Medium",
                                         "color": "Attention",
@@ -254,15 +199,12 @@ console.log(trim);
         return await result();
  
     } 
-
-    if(details.tipo === "Requerimiento") {
-        details.tabla = "sc_req_item";
+    if(trim.startsWith("RITM")) {
         const result = async function asyncFunc() {
             try {
-                const url = config.url + "/table/"+ details.tabla +"?sysparm_query=" + qfoliosn + "STARTSWITH" + trim +'&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=1' ;
-                console.log( "URL req : ",url);
                 const response =  await axios.get(
-                    url,
+              
+                  config.url + "/table/sc_req_item?sysparm_query=number%3D" + trim +'&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=10',
                   {headers:{"Accept":"application/json","Content-Type":"application/json","Authorization": ("Basic " + Buffer.from(config.sn).toString('base64'))}} ,
           
                 );
@@ -318,7 +260,7 @@ console.log(trim);
                                     },
                                     {
                                         "type": "TextBlock",
-                                        "text": "Ticket: "+ details.tt,
+                                        "text": "Ticket: "+ data.data.result[0].number,
                                         "weight": "Bolder",
                                         "size": "Medium",
                                         "color": "Attention",
@@ -383,6 +325,14 @@ console.log(trim);
         await step.context.sendActivity('El número de ticket no se encuentra en la base de datos de ServiceNow.');
         return await step.endDialog();
     }
+    
+
+    
+
+   
+   
+
+  
 }
 
 async dispatcher(step) {
@@ -393,7 +343,7 @@ async dispatcher(step) {
         case 'Sí':
             return await step.prompt(CHOICE_PROMPT, {
                 prompt: '**¿Que deseas realizar?**',
-                choices: ChoiceFactory.toChoices(['Reportar Incidente', 'Cancelar'])
+                choices: ChoiceFactory.toChoices(['Actualizar Descripción', 'Cancelar'])
             });
 
         case 'No':
@@ -405,18 +355,54 @@ async dispatcher(step) {
     async choiceDialog(step) {
         console.log('[mainDialog]:choiceDialog <<inicia>>');
         const answer = step.result.value;
-        const details = step.options;
         switch (answer) {
-            case "Reportar Incidente":
-                return await step.beginDialog(ACTUALIZARSN_DIALOG, details);  
+            case "Actualizar Descripción":
+                
+                return await step.prompt(TEXT_PROMPT, `Por favor, **escribe la descripción.**`);
             
             case "Cancelar":
+
                 return await step.context.sendActivity('Cancelando...');
         }
        
     }
 
- 
+    async actualizarDialog(step){
+        console.log('[mainDialog]:actualizarDialog <<inicia>>');
+        const descripcion = step.result;
+        const details = step.options;
+
+        moment.locale('es');
+        const cdmx = moment().tz("America/Mexico_City");
+        console.log(cdmx.format('LLL'));
+        console.log(details.sysid);
+        console.log(details);
+        console.log(details.description);
+        
+        const result = async function asyncFunc() {
+            try {
+                const response =  await axios.put(
+              
+                    config.url + "/table/incident/" + details.sysid,
+                    {"description": cdmx.format('LLL') + " " + descripcion + "\n" + details.description},
+                    {headers:{"Accept":"application/json","Content-Type":"application/json","Authorization": ("Basic " + Buffer.from(config.sn).toString('base64'))}}
+            
+                  );
+                  await response;
+                  console.log('await response');
+                  await step.prompt(TEXT_PROMPT, `La información ha sido actualizada correctamente.`);
+                  return await step.endDialog();
+                  
+            } catch (error) {
+                console.log(error);
+            await step.context.sendActivity('La operación no se pudo realizar en estos momentos, intentalo más tarde.');
+            return await step.endDialog();
+            }
+        };
+        await result();
+        return await step.endDialog();
+
+    }
 
     async finalDialog(step){
         console.log('[mainDialog]: finalDialog');

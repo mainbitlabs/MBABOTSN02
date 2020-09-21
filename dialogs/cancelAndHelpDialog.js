@@ -11,38 +11,33 @@ class CancelAndHelpDialog extends ComponentDialog {
 
     async onContinueDialog(innerDc) {
         const result = await this.interrupt(innerDc);
-        // console.log(timer);
-        // const timer =  await setTimeout(async() => {
-        //     console.log('El tiempo se termino');
-            
-        //     return true
-
-        // }, 5000);
-        // if (timer === true) {
-        //     await innerDc.context.sendActivity('El tiempo estimado para esta actividad ha terminado. \n Vuelve a intentarlo más tarde.');
-        //     config = {};
-        //     console.log(config);
-        //     return await innerDc.cancelAllDialogs();
-
-        // }
         if (result) {
             return result;
         }
         return await super.onContinueDialog(innerDc);
     }
 
-    async mytimer(innerDc){
-        
-        // await setTimeout(async() => {
-        //     console.log('El tiempo se termino');
-            
-        //     return true
-
-        // }, 5000);
-    }
-
     async interrupt(innerDc) {
-        const text = innerDc.context.activity.text.toLowerCase();
+        let text = innerDc.context.activity.text.toLowerCase();
+
+//         var myVar = setInterval(myTimer, 1000);
+//         var d = 0;
+//         function myTimer() {
+//           d++;
+//           callback();
+//         }
+//         async function callback(){
+       
+//             if (d<=5) {
+//                 console.log(d);
+//             } else {
+//                 clearInterval(myVar);
+//                 return  text = "timeup";
+//             }
+       
+
+//         };
+// console.log(myVar);
 
         switch (text) {
             case 'que pex':
@@ -52,13 +47,19 @@ class CancelAndHelpDialog extends ComponentDialog {
             case 'cancel':
             case 'cancelar':
             case 'salir':
-                
+                console.log('cancelAndHelpDialog : [interrupt]');
                 await innerDc.context.sendActivity('Cancelando...');
                 // config = {};
                 // console.log(config);
                 
                 return await innerDc.cancelAllDialogs();
-            case 'help':
+            case 'timeup':
+                console.log('cancelAndHelpDialog : [interrupt]');
+                await innerDc.context.sendActivity('Limite de tiempo...');
+                // config = {};
+                // console.log(config);
+                
+                return await innerDc.cancelAllDialogs();
             case '?':
                 await innerDc.context.sendActivity('[ This is where to send sample help to the user... ]');
                 return { status: DialogTurnStatus.waiting };
