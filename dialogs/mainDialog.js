@@ -110,9 +110,8 @@ async infoConfirmStep(step) {
             break;
     }
 console.log("Qfolio: " +qfoliosn);
-    const id = details.result.toUpperCase();
-    const trim = id.replace(/ /g,'');
-    details.tt = trim;
+    const id = details.result.toUpperCase().replace(/ /g,'');
+    details.tt = id;
 console.log("Details.tt: "+details.tt);
     if (details.tipo === "Incidente") {
         details.tabla = "incident";
