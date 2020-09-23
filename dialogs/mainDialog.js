@@ -129,7 +129,7 @@ console.log("Details.ticket: "+ details.ticket);
         details.tabla = "incident";
         const result = async function asyncFunc() {
             try {
-                const url = config.url + "/table/" + details.tabla + "?sysparm_query=" + qfoliosn + "STARTSWITH" + trim +"&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=1";
+                const url = config.url + "/table/" + details.tabla + "?sysparm_query=" + qfoliosn + "STARTSWITH" + details.ticket +"&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=1";
                 console.log("URL INC : ",url);
                 const response =  await axios.get(
                 url,
@@ -270,7 +270,7 @@ console.log("Details.ticket: "+ details.ticket);
         details.tabla = "sc_req_item";
         const result = async function asyncFunc() {
             try {
-                const url = config.url + "/table/"+ details.tabla +"?sysparm_query=" + qfoliosn + "STARTSWITH" + trim + "&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=1" ;
+                const url = config.url + "/table/"+ details.tabla +"?sysparm_query=" + qfoliosn + "STARTSWITH" + details.ticket + "&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=1" ;
                 console.log( "URL REQ : ",url);
                 const response =  await axios.get(
                     url,
