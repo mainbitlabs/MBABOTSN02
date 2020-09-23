@@ -90,8 +90,11 @@ async infoConfirmStep(step) {
         { type: 'delay', value: 2000 },
         { type: 'message', text:'Por favor espera un momento, estamos trabajando en ello...'}
 ]);
-    const details = step.options;
-    details.result = step.result;
+const ticket = step.result.toUpperCase();
+const trim = ticket.replace(/ /g,'');
+const details = step.options;
+    details.tt = trim;
+
     console.log(details);
 
     let qfoliosn = "";
@@ -110,8 +113,8 @@ async infoConfirmStep(step) {
             break;
     }
 console.log("Qfolio: " +qfoliosn);
-    const id = details.result.toUpperCase().replace(/ /g,'');
-    details.tt = id;
+    //const id = details.result.toUpperCase().replace(/ /g,'');
+    //details.tt = id;
 console.log("Details.tt: "+details.tt);
     if (details.tipo === "Incidente") {
         details.tabla = "incident";
