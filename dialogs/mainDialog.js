@@ -56,15 +56,18 @@ async proyectoStep(step){
     console.log('[mainDialog]:ProyectoStep');
     const proyecto = step.result.toUpperCase();
     const trim = proyecto.replace(/ /g,"");
+    const tron = trim.replace(/(?:\\[rn]|[\r\n]+)+/g, "");
+    console.log("Trim: ",trim);
+    console.log("Tron: ",tron);
     const details = step.options;
-        details.proyecto = trim;
+        details.proyecto = tron;
 
 switch (details.proyecto) {
     case "SAT":
     case "INE":
-        
+        const message = `Por favor, **indica el tipo de Ticket de ServiceNow que deseas consultar.**`;
         return await step.prompt(CHOICE_PROMPT, {
-            prompt: `Por favor, **indica el tipo de Ticket de ServiceNow que deseas consultar.**`,
+            prompt: message,
             choices: ChoiceFactory.toChoices(['Incidente', 'Requerimiento'])
         });
     
@@ -89,8 +92,11 @@ async infoConfirmStep(step) {
 
     const ticket = step.result.toUpperCase();
     const trim = ticket.replace(/ /g,"");
+    const tron = trim.replace(/(?:\\[rn]|[\r\n]+)+/g, "");
+    console.log("Trim: ",trim);
+    console.log("Tron: ",tron);
     const details = step.options;
-        details.ticket = trim;
+        details.ticket = tron;
     
     console.log(details);
 
