@@ -48,13 +48,14 @@ class MainDialog extends CancelAndHelpDialog {
 async tipoStep(step){
     console.log('[mainDialog]:TipoStep');
     await step.context.sendActivity('Recuerda que este bot tiene un tiempo limite de 10 minutos.');
+    await step.context.sendActivity(`Si tienes algun problema puedes reiniciar este Bot en cualquier momento, escribiendo la palabra **Cancelar**`);
     return await step.prompt(TEXT_PROMPT, `Por favor, **escribe el proyecto que deseas consultar.**`);
 }
 
 async proyectoStep(step){
     console.log('[mainDialog]:ProyectoStep');
     const proyecto = step.result.toUpperCase();
-    const trim = proyecto.replace(/ /g,'');
+    const trim = proyecto.replace(/ /g,"");
     const details = step.options;
         details.proyecto = trim;
 
@@ -63,13 +64,13 @@ switch (details.proyecto) {
     case "INE":
         
         return await step.prompt(CHOICE_PROMPT, {
-            prompt: 'Por favor, **indica el tipo de Ticket de ServiceNow que deseas consultar.**',
+            prompt: `Por favor, **indica el tipo de Ticket de ServiceNow que deseas consultar.**`,
             choices: ChoiceFactory.toChoices(['Incidente', 'Requerimiento'])
         });
     
     default:
         console.log(details.proyecto);
-        await step.context.sendActivity(`El proyecto **${step.result}** no está registrado en la base de datos.`);
+        await step.context.sendActivity(`El proyecto **${details.proyecto}** no está registrado en la base de datos.`);
         return await step.endDialog();   
     }
 }
@@ -85,17 +86,19 @@ async serieStep(step){
 
 async infoConfirmStep(step) {
     console.log('[mainDialog]:infoConfirmStep <<inicia>>');
-    await step.context.sendActivities([
+
+    const ticket = step.result.toUpperCase();
+    const trim = ticket.replace(/ /g,"");
+    const details = step.options;
+        details.ticket = trim;
+    
+    console.log(details);
+
+    await step.context.sendActivities([ 
         { type: 'typing' },
         { type: 'delay', value: 2000 },
         { type: 'message', text:'Por favor espera un momento, estamos trabajando en ello...'}
-]);
-const ticket = step.result.toUpperCase();
-const trim = ticket.replace(/ /g,'');
-const details = step.options;
-    details.tt = trim;
-
-    console.log(details);
+    ]);
 
     let qfoliosn = "";
     
@@ -112,10 +115,10 @@ const details = step.options;
         default:
             break;
     }
-console.log("Qfolio: " +qfoliosn);
+console.log("Qfolio: " + qfoliosn);
     //const id = details.result.toUpperCase().replace(/ /g,'');
-    //details.tt = id;
-console.log("Details.tt: "+details.tt);
+    //details.ticket = id;
+console.log("Details.ticket: "+ details.ticket);
     if (details.tipo === "Incidente") {
         details.tabla = "incident";
         const result = async function asyncFunc() {
@@ -183,7 +186,7 @@ console.log("Details.tt: "+details.tt);
                                     },
                                     {
                                         "type": "TextBlock",
-                                        "text": "Ticket: "+ details.tt,
+                                        "text": "Ticket: "+ details.ticket,
                                         "weight": "Bolder",
                                         "size": "Medium",
                                         "color": "Attention",
@@ -320,7 +323,7 @@ console.log("Details.tt: "+details.tt);
                                     },
                                     {
                                         "type": "TextBlock",
-                                        "text": "Ticket: "+ details.tt,
+                                        "text": "Ticket: "+ details.ticket,
                                         "weight": "Bolder",
                                         "size": "Medium",
                                         "color": "Attention",
