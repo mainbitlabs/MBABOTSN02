@@ -109,11 +109,11 @@ async infoConfirmStep(step) {
         default:
             break;
     }
-console.log(qfoliosn);
+console.log("Qfolio: " +qfoliosn);
     const id = details.result.toUpperCase();
     const trim = id.replace(/ /g,'');
     details.tt = trim;
-console.log(trim);
+console.log("Details.tt: "+details.tt);
     if (details.tipo === "Incidente") {
         details.tabla = "incident";
         const result = async function asyncFunc() {
@@ -127,11 +127,11 @@ console.log(trim);
                 );
                 const data = await response;
                
-                console.log("Requerimiento ", data.data.result[0]);
+                console.log("#Incidente ", data.data.result[0].number);
                 details.sysid = data.data.result[0].sys_id; 
                 details.description = data.data.result[0].description; 
                 console.log(details.sysid);
-                console.log(details.description);
+                //console.log(details.description);
                 
                 // const msg=(` **Ticket:** ${data.data.result[0].number}\n\n **Proyecto:** ${data.data.result[0].sys_domain}\n\n **Número de Serie**: ${data.data.result[0].u_ci} \n\n  **Categoría** ${data.data.result[0].category} \n\n **Subcategoría** ${data.data.result[0].subcategory} \n\n  **Subcategoría_L2** ${data.data.result[0].u_subcategory_l2} \n\n **Subcategoría_L3** ${data.data.result[0].u_subcategory_l3} \n\n**Subcategoría_L4** ${data.data.result[0].u_subcategory_l4} \n\n**Descripción ** ${data.data.result[0].short_description} \n\n**Detalle** ${data.data.result[0].description} \n\n`);
                 // await step.context.sendActivity(msg);
@@ -260,7 +260,7 @@ console.log(trim);
         const result = async function asyncFunc() {
             try {
                 const url = config.url + "/table/"+ details.tabla +"?sysparm_query=" + qfoliosn + "STARTSWITH" + trim +'&sysparm_display_value=true&sysparm_exclude_reference_link=true&sysparm_limit=1' ;
-                console.log( "URL req : ",url);
+                console.log( "URL REQ : ",url);
                 const response =  await axios.get(
                     url,
                   {headers:{"Accept":"application/json","Content-Type":"application/json","Authorization": ("Basic " + Buffer.from(config.sn).toString('base64'))}} ,
